@@ -94,18 +94,44 @@ export const teamsRelations = relations(teams, ({ one }) => ({
   }),
 }));
 
-// export const plans = sqliteTable("plans", {
-// todo: add plans table schema
-// });
+export const plans = sqliteTable("plans", {
+    id: integer("id").primaryKey().notNull(),
+    name: text("name").notNull(),
+    price: integer("price").notNull(),
+}, (table) => {
+    return {
+        nameIndex: uniqueIndex("nameIndex").on(table.name),
+    };
+});
 
-// export const subscriptions = sqliteTable("subscriptions", {
-//   // todo: add subscriptions table schema
-// });
+export const subscriptions = sqliteTable("subscriptions", {
+    id: integer("id").primaryKey().notNull(),
+    planId: integer("planId")
+        .notNull()
+        .references(() => plans.id, { onDelete: "restrict", onUpdate: "restrict" }),
+    userId: integer("userId")
+        .notNull()
+        .references(() => users.id, { onDelete: "restrict", onUpdate: "restrict" }),
+    startDate: timestamp("startDate").notNull(),
+    endDate: timestamp("endDate").notNull(),
+});
 
-// export const orders = sqliteTable("orders", {
-//   // todo: add orders table schema
-// });
+export const orders = sqliteTable("orders", {
+    id: integer("id").primaryKey().notNull(),
+    subscriptionId: integer("subscriptionId")
+        .notNull()
+        .references(() => subscriptions.id, { onDelete: "restrict", onUpdate: "restrict" }),
+    activationId: integer("activationId").notNull(),
+    amountPaid: integer("amountPaid").notNull(),
+    paymentDate: timestamp("paymentDate").notNull(),
+});
 
-// export const subscriptionActivations = sqliteTable("subscriptionActivations", {
-//   // todo: add subscriptionActivations table schema
-// });
+export const subscriptionActivations = sqliteTable("subscriptionActivations", {
+    id: integer("id").primaryKey().notNull(),
+    subscriptionId: integer("subscriptionId")
+        .notNull()
+        .references(() => subscriptions.id, { onDelete: "restrict", onUpdate: "restrict" }),
+    activationDate: timestamp("activationDate").notNull(),
+    expiryDate: timestamp("expiryDate").notNull(),
+});
+

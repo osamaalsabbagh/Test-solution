@@ -32,7 +32,7 @@ export const createAuthenticatedCaller = ({ userId }: { userId: number }) => {
   });
 };
 
-type User = {
+export type User = {
   email: string;
   password: string;
   name: string;
@@ -63,4 +63,23 @@ export const setupUser = async (user: User) => {
   });
 
   return { teamId, calendarSlug: authenticatedUser };
+};
+
+export const createUser = async (user: User, isAdmin: boolean = false) => {
+  await createCaller({}).auth.register(user);
+  if(isAdmin){
+    await db.update(schema.users)
+        .set({
+          isAdmin: true,
+        })
+        .where(eq(schema.users.email, user.email));
+  }
+  return await db.query.users.findFirst({
+    where: eq(schema.users.email, user.email),
+  });
+};
+
+export type Plan = {
+  name: string;
+  price: number;
 };
