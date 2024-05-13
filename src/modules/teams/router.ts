@@ -3,7 +3,6 @@ import { z } from "zod";
 import { schema, db } from "../../db/client";
 import { eq, and } from "drizzle-orm";
 
-// noinspection TypeScriptValidateTypes
 export const teams = router({
   getOne: protectedProcedure
     .input(

@@ -182,7 +182,7 @@ describe("plans routes", async () => {
             currentSubscriptionRemainingDays: currentSubscriptionRemainingDays
           });
       expect(result).toBeDefined();
-      expect(result).toBe(upgradePriceCalculation(plans[0],plans[1], currentSubscriptionRemainingDays));//will be 100 in this case
+      expect(result).toBe(upgradePriceCalculation(plans[0], plans[1], currentSubscriptionRemainingDays));//will be 100 in this case
     });
   });
 });
