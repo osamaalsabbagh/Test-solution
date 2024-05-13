@@ -80,6 +80,7 @@ If you were to introduce two more props to plans:
 How would this affect the current plan upgrade calculation?
 
 ### answer here:
+```
 export const upgradePriceCalculation2 = (
     plan1: Plan,
     plan2: Plan,
@@ -97,3 +98,4 @@ export const upgradePriceCalculation2 = (
         - (plan1FullPrice/planDurationDays) * currentSubscriptionRemainingDays //The subscription price for the remaining days of plan1
     );
 }
+```
