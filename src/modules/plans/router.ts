@@ -1,7 +1,7 @@
 import {protectedProcedure, publicProcedure, router, trpcError} from "../../trpc/core";
 import {z} from "zod";
 import {db, schema} from "../../db/client";
-import {inArray,eq} from "drizzle-orm";
+import {inArray, eq, ne, and} from "drizzle-orm";
 import {upgradePriceCalculation} from "./model";
 import {Plan} from "../../tests/helpers/utils";
 
@@ -20,19 +20,28 @@ export const plans = router({
               });
           }
           const { name, price } = input;
-            await db
-                .insert(schema.plans)
-                .values({
-                    name,
-                    price,
-                })
-                .returning();
+          const plan = await db.query.plans.findFirst({
+              where: eq(schema.plans.name, name),
+          });
+          // check 400
+          if (plan) {
+              throw new trpcError({
+                  code: "BAD_REQUEST",
+              });
+          }
+          await db
+              .insert(schema.plans)
+              .values({
+                  name,
+                  price,
+              })
+              .returning();
           return {
               success: true,
           };
     }),
   update: protectedProcedure
-      .input(z.object({ name: z.string(), price: z.number(), planId: z.number() }))
+      .input(z.object({ name: z.string(), price: z.number(), id: z.number() }))
       .mutation(async ({ ctx: { user }, input }) => {
           const { userId } = user;
           const targetUser = await db.query.users.findFirst({
@@ -43,13 +52,25 @@ export const plans = router({
                   code: "UNAUTHORIZED",
               });
           }
-          const { name, price, planId } = input;
+          const { name, price, id } = input;
+          const plan = await db.query.plans.findFirst({
+              where: and(
+                  eq(schema.plans.name, name),
+                  ne(schema.plans.id, id)
+              ),
+          });
+          // check 400
+          if (plan) {
+              throw new trpcError({
+                  code: "BAD_REQUEST",
+              });
+          }
           await db.update(schema.plans)
               .set({
                   name,
                   price,
               })
-              .where(eq(schema.plans.id, planId));
+              .where(eq(schema.plans.id, id));
           return {
               success: true,
           };

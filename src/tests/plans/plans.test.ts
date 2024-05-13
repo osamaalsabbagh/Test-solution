@@ -45,7 +45,7 @@ describe("plans routes", async () => {
     const plan = plan1Info;
     it("should throw error when user is not admin", async () => {
       const normalUser = await createUser(normalUserInfo);
-      await expect(createAuthenticatedCaller({userId: normalUser!.id}).plans.create(plan)).rejects.toThrowError(
+      await expect(createAuthenticatedCaller({userId: normalUser.id}).plans.create(plan)).rejects.toThrowError(
           new trpcError({
             code: "UNAUTHORIZED",
           })
@@ -53,42 +53,85 @@ describe("plans routes", async () => {
     });
     it("should create plan successfully", async () => {
       const admUser = await createUser(admUserInfo, true);
-      let planCreateRes = await createAuthenticatedCaller({userId: admUser!.id}).plans.create(plan);
+      let planCreateRes = await createAuthenticatedCaller({userId: admUser.id}).plans.create(plan);
       expect(planCreateRes.success).toBe(true);
       const planIndb = await getPlanByNameFromDb(plan.name);
       expect(planIndb).toBeDefined();
       expect(planIndb.name).toBe(plan.name);
       expect(planIndb.price).toBe(plan.price);
     });
+
+    it("should throw error on duplicate plan", async () => {
+      const admUser = await createUser(admUserInfo, true);
+      await createAuthenticatedCaller({userId: admUser.id}).plans.create(plan);
+      await expect(createAuthenticatedCaller({userId: admUser.id}).plans.create(plan)).rejects.toThrowError(
+          new trpcError({
+            code: "BAD_REQUEST",
+          })
+      );
+    });
   });
   describe("update", async () => {
+    const plan = plan1Info;
+    const planAfterUpdate = plan2Info;
     it("should throw error when user is not admin", async () => {
-      const plan = plan1Info;
-      const planAfterUpdate = plan2Info;
       const admUser = await createUser(admUserInfo, true);
-      await createAuthenticatedCaller({userId: admUser!.id}).plans.create(plan);
+      await createAuthenticatedCaller({userId: admUser.id}).plans.create(plan);
       const planIndb = await getPlanByNameFromDb(plan.name);
       const normalUser = await createUser(normalUserInfo);
-      await expect(createAuthenticatedCaller({userId: normalUser!.id}).plans.update({...planAfterUpdate, planId: planIndb.id})).rejects.toThrowError(
+      await expect(createAuthenticatedCaller({userId: normalUser.id}).plans.update({...planAfterUpdate, id: planIndb.id})).rejects.toThrowError(
           new trpcError({
             code: "UNAUTHORIZED",
           })
       );
     });
-    it("should create plan successfully", async () => {
-      const plan = plan1Info;
-      const planAfterUpdate = plan2Info;
+    it("should update plan successfully", async () => {
       const admUser = await createUser(admUserInfo, true);
-      await createAuthenticatedCaller({userId: admUser!.id}).plans.create(plan);
+      await createAuthenticatedCaller({userId: admUser.id}).plans.create(plan);
       const planIndb = await getPlanByNameFromDb(plan.name);
-      let planUpdateRes = await createAuthenticatedCaller({userId: admUser!.id}).plans.update({...planAfterUpdate, planId: planIndb.id});
+      let planUpdateRes, planAfterUpdateIndb;
+      //update price and name case
+      planUpdateRes = await createAuthenticatedCaller({userId: admUser.id}).plans.update({...planAfterUpdate, id: planIndb.id});
       expect(planUpdateRes.success).toBe(true);
-      const planAfterUpdateIndb = await db.query.plans.findFirst({
+      planAfterUpdateIndb = await db.query.plans.findFirst({
         where: eq(schema.plans.id, planIndb.id),
       });
       expect(planAfterUpdateIndb).toBeDefined();
-      expect(planAfterUpdateIndb!.name).toBe(planAfterUpdate.name);
-      expect(planAfterUpdateIndb!.price).toBe(planAfterUpdate.price);
+      expect(planAfterUpdateIndb.name).toBe(planAfterUpdate.name);
+      expect(planAfterUpdateIndb.price).toBe(planAfterUpdate.price);
+      //reset
+      await createAuthenticatedCaller({userId: admUser.id}).plans.update({...planIndb});
+      //update price only
+      planUpdateRes = await createAuthenticatedCaller({userId: admUser.id}).plans.update({...planIndb, price: planAfterUpdate.price});
+      expect(planUpdateRes.success).toBe(true);
+      planAfterUpdateIndb = await db.query.plans.findFirst({
+        where: eq(schema.plans.id, planIndb.id),
+      });
+      expect(planAfterUpdateIndb).toBeDefined();
+      expect(planAfterUpdateIndb.name).toBe(plan.name);
+      expect(planAfterUpdateIndb.price).toBe(planAfterUpdate.price);
+      //reset
+      await createAuthenticatedCaller({userId: admUser.id}).plans.update({...planIndb});
+      //update name only
+      planUpdateRes = await createAuthenticatedCaller({userId: admUser.id}).plans.update({...planIndb, name: planAfterUpdate.name});
+      expect(planUpdateRes.success).toBe(true);
+      planAfterUpdateIndb = await db.query.plans.findFirst({
+        where: eq(schema.plans.id, planIndb.id),
+      });
+      expect(planAfterUpdateIndb).toBeDefined();
+      expect(planAfterUpdateIndb.name).toBe(planAfterUpdate.name);
+      expect(planAfterUpdateIndb.price).toBe(plan.price);
+    });
+    it("should throw error on duplicate plan", async () => {
+      const admUser = await createUser(admUserInfo, true);
+      await createAuthenticatedCaller({userId: admUser.id}).plans.create(plan);
+      const planIndb = await getPlanByNameFromDb(plan.name);
+      await createAuthenticatedCaller({userId: admUser.id}).plans.create(planAfterUpdate);
+      await expect(createAuthenticatedCaller({userId: admUser.id}).plans.update({...planIndb, name: planAfterUpdate.name})).rejects.toThrowError(
+          new trpcError({
+            code: "BAD_REQUEST",
+          })
+      );
     });
   });
   describe("read", async () => {
@@ -100,7 +143,7 @@ describe("plans routes", async () => {
       ];
       const admUser = await createUser(admUserInfo, true);
       for (const plan of plans) {
-        let planCreateRes = await createAuthenticatedCaller({userId: admUser!.id}).plans.create(plan);
+        let planCreateRes = await createAuthenticatedCaller({userId: admUser.id}).plans.create(plan);
         expect(planCreateRes.success).toBe(true);
       }
 
@@ -127,7 +170,7 @@ describe("plans routes", async () => {
       ];
       const admUser = await createUser(admUserInfo, true);
       for (const plan of plans) {
-        let planCreateRes = await createAuthenticatedCaller({userId: admUser!.id}).plans.create(plan);
+        let planCreateRes = await createAuthenticatedCaller({userId: admUser.id}).plans.create(plan);
         expect(planCreateRes.success).toBe(true);
       }
 
